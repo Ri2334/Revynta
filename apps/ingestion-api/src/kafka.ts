@@ -51,3 +51,16 @@ export async function produceRawEvents(tenantId: string, events: TrackingEvent[]
     messages,
   });
 }
+
+export async function checkKafkaHealth(): Promise<boolean> {
+  try {
+    if (!producer) return false;
+    const admin = kafka.admin();
+    await admin.connect();
+    await admin.listTopics();
+    await admin.disconnect();
+    return true;
+  } catch {
+    return false;
+  }
+}

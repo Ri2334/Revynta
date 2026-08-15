@@ -16,6 +16,7 @@
     "@revynta/database": "workspace:*",
     "@revynta/intent-engine": "workspace:*",
     "@revynta/observability": "workspace:*",
+    "@revynta/recommendation-engine": "workspace:*",
     "@revynta/shared-types": "workspace:*",
     "bullmq": "^6.1.1",
     "ioredis": "^5.11.1",

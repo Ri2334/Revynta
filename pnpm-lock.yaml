@@ -254,6 +254,9 @@ importers:
       '@revynta/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@revynta/recommendation-engine':
+        specifier: workspace:*
+        version: link:../../packages/recommendation-engine
       '@revynta/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

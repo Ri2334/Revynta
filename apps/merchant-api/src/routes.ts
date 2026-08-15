@@ -16,6 +16,36 @@ import { HybridRecommendationModel } from '@revynta/recommendation-engine';
 import crypto from 'crypto';
 
 export async function routes(fastify: FastifyInstance): Promise<void> {
+  // GET /health/liveness
+  fastify.get('/health/liveness', async () => {
+    return { status: 'healthy', process: 'alive', timestamp: Date.now() };
+  });
+
+  // GET /health/readiness
+  fastify.get('/health/readiness', async (request, reply) => {
+    try {
+      const { checkPostgresHealth, checkRedisHealth } = await import('@revynta/database');
+      const pgOk = await checkPostgresHealth().catch(() => false);
+      const redisOk = await checkRedisHealth().catch(() => false);
+
+      const isReady = pgOk && redisOk;
+      return reply.status(isReady ? 200 : 503).send({
+        status: isReady ? 'ready' : 'unready',
+        dependencies: { postgres: pgOk, redis: redisOk },
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      return reply.status(503).send({ status: 'unready', error: (err as Error).message });
+    }
+  });
+
+  // GET /metrics
+  fastify.get('/metrics', async (request, reply) => {
+    const { getMetrics, getMetricsContentType } = await import('@revynta/observability');
+    reply.header('Content-Type', getMetricsContentType());
+    return reply.send(getMetrics());
+  });
+
   // --- Public Auth Routes ---
 
   // POST /api/v1/auth/register
@@ -964,10 +994,12 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
       return reply.status(422).send({ error: { code: 'VALIDATION_ERROR', message: 'Invalid eventType' } });
     }
 
+    const shopperIdVal = (shopperId && typeof shopperId === 'string' && shopperId.trim() !== '') ? shopperId : null;
+
     await withStoreContext(storeId, async (trx: any) => {
       await trx('recommendation_events').insert({
         store_id: storeId,
-        shopper_id: shopperId || null,
+        shopper_id: shopperIdVal,
         product_id: productId,
         event_type: eventType,
         strategy: strategy,

@@ -13,8 +13,39 @@ import {
 
 export async function routes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void> {
   
-  fastify.get('/health', async () => {
-    return { status: 'healthy', timestamp: Date.now() };
+  // GET /health/liveness - Liveness check for container orchestration
+  fastify.get('/health/liveness', async () => {
+    return { status: 'healthy', process: 'alive', timestamp: Date.now() };
+  });
+
+  // GET /health/readiness - Readiness check with 2s timeout for DB, Redis, Kafka
+  fastify.get('/health/readiness', async (request, reply) => {
+    try {
+      const { checkPostgresHealth, checkRedisHealth } = await import('@revynta/database');
+      const { checkKafkaHealth } = await import('./kafka.js');
+
+      const pgOk = await checkPostgresHealth().catch(() => false);
+      const redisOk = await checkRedisHealth().catch(() => false);
+      const kafkaOk = await checkKafkaHealth().catch(() => false);
+
+      const isReady = pgOk && redisOk && kafkaOk;
+      const status = isReady ? 200 : 503;
+
+      return reply.status(status).send({
+        status: isReady ? 'ready' : 'unready',
+        dependencies: { postgres: pgOk, redis: redisOk, kafka: kafkaOk },
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      return reply.status(503).send({ status: 'unready', error: (err as Error).message });
+    }
+  });
+
+  // GET /metrics - Prometheus metrics export
+  fastify.get('/metrics', async (request, reply) => {
+    const { getMetrics, getMetricsContentType } = await import('@revynta/observability');
+    reply.header('Content-Type', getMetricsContentType());
+    return reply.send(getMetrics());
   });
 
   const ingestSchema = {
