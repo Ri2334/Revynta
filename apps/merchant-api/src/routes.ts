@@ -9,7 +9,10 @@ import {
   encryptPII,
   decryptPII,
   getClickHouseClient,
+  upsertProduct,
+  getActiveProducts,
 } from '@revynta/database';
+import { HybridRecommendationModel } from '@revynta/recommendation-engine';
 import crypto from 'crypto';
 
 export async function routes(fastify: FastifyInstance): Promise<void> {
@@ -866,5 +869,156 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
         stage_purchases: 0,
       }});
     }
+  });
+
+  // --- Phase 11: Recommendation Engine & Product Catalog Routes ---
+
+  const recModel = new HybridRecommendationModel();
+
+  // GET /api/v1/recommendations
+  fastify.get('/api/v1/recommendations', { preHandler: [authenticateMerchant] }, async (request, reply) => {
+    const user = request.user!;
+    const storeId = user.activeStoreId;
+    const { shopperId, sessionId, strategy, productId, category, limit, skipCache } = request.query as any;
+
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    if (isNaN(parsedLimit) || parsedLimit <= 0) {
+      return reply.status(422).send({ error: { code: 'VALIDATION_ERROR', message: 'Limit must be a positive integer' } });
+    }
+
+    try {
+      const response = await recModel.recommend({
+        storeId,
+        shopperId,
+        sessionId,
+        strategy,
+        productId,
+        category,
+        limit: Math.min(parsedLimit, 50),
+        skipCache: skipCache === 'true',
+      });
+
+      return reply.send({ data: response });
+    } catch (err) {
+      fastify.log.error(err, 'Recommendation generation failed');
+      return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Failed to generate recommendations' } });
+    }
+  });
+
+  // POST /api/v1/products (Product Ingestion for Merchants)
+  fastify.post('/api/v1/products', { preHandler: [authenticateMerchant, authorizeRoles(['owner', 'admin'])] }, async (request, reply) => {
+    const user = request.user!;
+    const storeId = user.activeStoreId;
+    const { sku, name, categories, brand, price, status, metadata } = request.body as any;
+
+    if (!sku || !name || price === undefined) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Missing sku, name, or price' } });
+    }
+
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice < 0) {
+      return reply.status(422).send({ error: { code: 'VALIDATION_ERROR', message: 'Price must be non-negative' } });
+    }
+
+    const product = await upsertProduct(storeId, {
+      sku,
+      name,
+      categories: Array.isArray(categories) ? categories : [],
+      brand: brand || undefined,
+      price: numericPrice,
+      status: status || 'active',
+      metadata: metadata || {},
+    });
+
+    return reply.status(201).send({ data: product });
+  });
+
+  // GET /api/v1/products (List Store Products)
+  fastify.get('/api/v1/products', { preHandler: [authenticateMerchant] }, async (request, reply) => {
+    const user = request.user!;
+    const storeId = user.activeStoreId;
+    const { category, brand, limit } = request.query as any;
+
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    const products = await getActiveProducts(storeId, {
+      category,
+      brand,
+      limit: Math.min(parsedLimit, 100),
+    });
+
+    return reply.send({ data: products });
+  });
+
+  // POST /api/v1/recommendations/events (Track Impressions, Clicks, Conversions)
+  fastify.post('/api/v1/recommendations/events', { preHandler: [authenticateMerchant] }, async (request, reply) => {
+    const user = request.user!;
+    const storeId = user.activeStoreId;
+    const { shopperId, productId, eventType, strategy, recommendationId } = request.body as any;
+
+    if (!productId || !eventType || !strategy) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Missing productId, eventType, or strategy' } });
+    }
+
+    const validEventTypes = ['recommendation_impression', 'recommendation_click', 'recommendation_conversion'];
+    if (!validEventTypes.includes(eventType)) {
+      return reply.status(422).send({ error: { code: 'VALIDATION_ERROR', message: 'Invalid eventType' } });
+    }
+
+    await withStoreContext(storeId, async (trx: any) => {
+      await trx('recommendation_events').insert({
+        store_id: storeId,
+        shopper_id: shopperId || null,
+        product_id: productId,
+        event_type: eventType,
+        strategy: strategy,
+        recommendation_id: recommendationId || null,
+      });
+    });
+
+    return reply.status(201).send({ data: { tracked: true } });
+  });
+
+  // GET /api/v1/analytics/recommendations (Merchant Analytics for Recommendations)
+  fastify.get('/api/v1/analytics/recommendations', { preHandler: [authenticateMerchant] }, async (request, reply) => {
+    const user = request.user!;
+    const storeId = user.activeStoreId;
+
+    const analytics = await withStoreContext(storeId, async (storeTrx: any) => {
+      const rows = await storeTrx('recommendation_events')
+        .where({ store_id: storeId })
+        .select('strategy', 'event_type')
+        .count('id as count')
+        .groupBy('strategy', 'event_type');
+
+      const strategyMap: Record<string, { strategy: string; impressions: number; clicks: number; conversions: number; ctr: number; conversionRate: number }> = {};
+
+      for (const row of rows) {
+        if (!strategyMap[row.strategy]) {
+          strategyMap[row.strategy] = {
+            strategy: row.strategy,
+            impressions: 0,
+            clicks: 0,
+            conversions: 0,
+            ctr: 0,
+            conversionRate: 0,
+          };
+        }
+
+        const count = parseInt(row.count as string, 10);
+        if (row.event_type === 'recommendation_impression') strategyMap[row.strategy].impressions = count;
+        if (row.event_type === 'recommendation_click') strategyMap[row.strategy].clicks = count;
+        if (row.event_type === 'recommendation_conversion') strategyMap[row.strategy].conversions = count;
+      }
+
+      for (const key in strategyMap) {
+        const item = strategyMap[key];
+        item.ctr = item.impressions > 0 ? parseFloat((item.clicks / item.impressions).toFixed(4)) : 0;
+        item.conversionRate = item.clicks > 0 ? parseFloat((item.conversions / item.clicks).toFixed(4)) : 0;
+      }
+
+      return Object.values(strategyMap);
+    });
+
+    return reply.send({ data: analytics });
   });
 }

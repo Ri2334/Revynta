@@ -1,0 +1,23 @@
+{
+  "name": "@revynta/recommendation-engine",
+  "version": "1.0.0",
+  "description": "Production-grade multi-tenant hybrid recommendation engine for Revynta",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@revynta/config": "workspace:*",
+    "@revynta/database": "workspace:*",
+    "@revynta/intent-engine": "workspace:*",
+    "@revynta/observability": "workspace:*",
+    "@revynta/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  }
+}

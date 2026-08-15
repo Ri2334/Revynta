@@ -13,7 +13,10 @@ export type EventType =
   | 'checkout_init'
   | 'purchase'
   | 'consent_change'
-  | 'identify';
+  | 'identify'
+  | 'recommendation_impression'
+  | 'recommendation_click'
+  | 'recommendation_conversion';
 
 export interface BaseEvent {
   eventId: string;
@@ -50,12 +53,20 @@ export interface IdentifyEvent extends BaseEvent {
   identityValue: string;
 }
 
+export interface RecommendationEvent extends BaseEvent {
+  eventType: 'recommendation_impression' | 'recommendation_click' | 'recommendation_conversion';
+  productId: string;
+  strategy: string;
+  recommendationId?: string;
+}
+
 export type TrackingEvent =
   | BaseEvent
   | ProductViewEvent
   | SearchEvent
   | ConsentChangeEvent
-  | IdentifyEvent;
+  | IdentifyEvent
+  | RecommendationEvent;
 
 export interface IngressEventBatch {
   storeKey: string;
@@ -86,4 +97,55 @@ export interface EnrichedEvent {
   query?: string;
   
   metadata?: Record<string, any>;
+}
+
+// ─── Recommendation Domain Types ─────────────────────────────────────
+
+export type RecommendationStrategy =
+  | 'personalized'
+  | 'similar'
+  | 'trending'
+  | 'popular'
+  | 'category'
+  | 'cold_start'
+  | 'hybrid';
+
+export type RecommendationReasonCode =
+  | 'PERSONALIZED_AFFINITY'
+  | 'SIMILAR_PRODUCT'
+  | 'TRENDING_STORE'
+  | 'POPULAR_STORE'
+  | 'CATEGORY_AFFINITY'
+  | 'COLD_START';
+
+export interface RecommendationItem {
+  productId: string;
+  sku: string;
+  name: string;
+  categories: string[];
+  brand: string | null;
+  price: number;
+  score: number;
+  reasonCode: RecommendationReasonCode;
+  reason: string;
+  source: string;
+  metadata?: Record<string, any>;
+}
+
+export interface RecommendationResponse {
+  recommendations: RecommendationItem[];
+  strategy: RecommendationStrategy;
+  generatedAt: string;
+  modelVersion: string;
+  cached?: boolean;
+}
+
+export interface RecommendationRequestParams {
+  storeId: string;
+  shopperId?: string;
+  sessionId?: string;
+  strategy?: RecommendationStrategy;
+  productId?: string;
+  category?: string;
+  limit?: number;
 }

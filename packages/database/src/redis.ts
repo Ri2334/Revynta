@@ -10,6 +10,13 @@ export const redis = new Redis(config.redis.uri);
 export const sessionKey = (tenantId: string, sessionId: string) => `session:${tenantId}:${sessionId}`;
 export const suppressionKey = (tenantId: string, shopperId: string) => `purchased_recently:${tenantId}:${shopperId}`;
 export const affinityKey = (tenantId: string, dimension: string) => `affinity:${dimension}:${tenantId}`;
+export const recommendationCacheKey = (
+  tenantId: string,
+  entityType: 'shopper' | 'session' | 'store' | 'product',
+  entityId: string,
+  strategy: string,
+  version: string = 'hybrid-v1'
+) => `recommendations:${tenantId}:${entityType}:${entityId}:${strategy}:${version}`;
 
 /**
  * Validates connection health for Redis
@@ -119,3 +126,50 @@ export async function isPurchaseSuppressed(tenantId: string, shopperId: string):
   const val = await redis.get(key);
   return val === 'true';
 }
+
+/**
+ * Stores cached recommendations in Redis
+ */
+export async function setCachedRecommendations(
+  tenantId: string,
+  entityType: 'shopper' | 'session' | 'store' | 'product',
+  entityId: string,
+  strategy: string,
+  data: any,
+  ttlSeconds: number = 300,
+  version: string = 'hybrid-v1'
+): Promise<void> {
+  const key = recommendationCacheKey(tenantId, entityType, entityId, strategy, version);
+  await redis.set(key, JSON.stringify(data), 'EX', ttlSeconds);
+}
+
+/**
+ * Retrieves cached recommendations from Redis
+ */
+export async function getCachedRecommendations(
+  tenantId: string,
+  entityType: 'shopper' | 'session' | 'store' | 'product',
+  entityId: string,
+  strategy: string,
+  version: string = 'hybrid-v1'
+): Promise<any | null> {
+  const key = recommendationCacheKey(tenantId, entityType, entityId, strategy, version);
+  const raw = await redis.get(key);
+  return raw ? JSON.parse(raw) : null;
+}
+
+/**
+ * Invalidates recommendation cache entries for a given store & shopper/session
+ */
+export async function invalidateRecommendationCache(
+  tenantId: string,
+  entityType: 'shopper' | 'session' | 'store' | 'product',
+  entityId: string
+): Promise<void> {
+  const pattern = `recommendations:${tenantId}:${entityType}:${entityId}:*`;
+  const keys = await redis.keys(pattern);
+  if (keys.length > 0) {
+    await redis.del(...keys);
+  }
+}
+

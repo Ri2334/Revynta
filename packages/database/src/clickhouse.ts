@@ -157,3 +157,135 @@ export async function insertAnalyticsEvents(events: EnrichedEvent[]): Promise<vo
     format: 'JSONEachRow',
   });
 }
+
+/**
+ * Retrieves recency-weighted trending products for a tenant from ClickHouse
+ */
+export async function getTrendingProductsFromCH(
+  tenantId: string,
+  limit: number = 10,
+  days: number = 7
+): Promise<Array<{ productId: string; score: number }>> {
+  try {
+    const client = getClickHouseClient();
+    const query = `
+      SELECT
+        productId,
+        sum(
+          case
+            when event_type = 'purchase' then 10.0
+            when event_type = 'cart_add' then 5.0
+            when event_type = 'product_view' then 1.0
+            else 0.5
+          end * exp(-0.1 * dateDiff('day', toDate(event_time), today()))
+        ) as trend_score
+      FROM events_analytics
+      WHERE tenant_id = {tenantId:UUID}
+        AND productId != ''
+        AND event_time >= now() - INTERVAL {days:UInt32} DAY
+      GROUP BY productId
+      ORDER BY trend_score DESC
+      LIMIT {limit:UInt32}
+    `;
+
+    const result = await client.query({
+      query,
+      query_params: { tenantId, days, limit },
+      format: 'JSONEachRow',
+    });
+
+    const dataset = (await result.json()) as any[];
+    return dataset.map((row) => ({
+      productId: row.productId,
+      score: parseFloat(row.trend_score),
+    }));
+  } catch (error) {
+    logger.warn({ err: error, tenantId }, 'ClickHouse trending products query failed, returning empty list');
+    return [];
+  }
+}
+
+/**
+ * Retrieves overall popular products for a tenant from ClickHouse
+ */
+export async function getPopularProductsFromCH(
+  tenantId: string,
+  limit: number = 10
+): Promise<Array<{ productId: string; count: number }>> {
+  try {
+    const client = getClickHouseClient();
+    const query = `
+      SELECT
+        productId,
+        count() as interaction_count
+      FROM events_analytics
+      WHERE tenant_id = {tenantId:UUID}
+        AND productId != ''
+      GROUP BY productId
+      ORDER BY interaction_count DESC
+      LIMIT {limit:UInt32}
+    `;
+
+    const result = await client.query({
+      query,
+      query_params: { tenantId, limit },
+      format: 'JSONEachRow',
+    });
+
+    const dataset = (await result.json()) as any[];
+    return dataset.map((row) => ({
+      productId: row.productId,
+      count: parseInt(row.interaction_count, 10),
+    }));
+  } catch (error) {
+    logger.warn({ err: error, tenantId }, 'ClickHouse popular products query failed, returning empty list');
+    return [];
+  }
+}
+
+/**
+ * Retrieves co-occurring products viewed/interacted within the same session/shopper (Collaborative signal)
+ */
+export async function getCoOccurrenceProductsFromCH(
+  tenantId: string,
+  targetProductId: string,
+  limit: number = 10
+): Promise<Array<{ productId: string; score: number }>> {
+  try {
+    const client = getClickHouseClient();
+    const query = `
+      SELECT
+        productId,
+        count(DISTINCT session_id) as co_occurrence_count
+      FROM events_analytics
+      WHERE tenant_id = {tenantId:UUID}
+        AND productId != ''
+        AND productId != {targetProductId:String}
+        AND session_id IN (
+          SELECT DISTINCT session_id
+          FROM events_analytics
+          WHERE tenant_id = {tenantId:UUID}
+            AND productId = {targetProductId:String}
+        )
+      GROUP BY productId
+      ORDER BY co_occurrence_count DESC
+      LIMIT {limit:UInt32}
+    `;
+
+    const result = await client.query({
+      query,
+      query_params: { tenantId, targetProductId, limit },
+      format: 'JSONEachRow',
+    });
+
+    const dataset = (await result.json()) as any[];
+    return dataset.map((row) => ({
+      productId: row.productId,
+      score: parseInt(row.co_occurrence_count, 10),
+    }));
+  } catch (error) {
+    logger.warn({ err: error, tenantId, targetProductId }, 'ClickHouse co-occurrence query failed, returning empty list');
+    return [];
+  }
+}
+

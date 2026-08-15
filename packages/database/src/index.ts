@@ -4,3 +4,4 @@ export * from './redis.js';
 export * from './crypto.js';
 export * from './intentRepository.js';
 export * from './campaignRepository.js';
+export * from './productRepository.js';
