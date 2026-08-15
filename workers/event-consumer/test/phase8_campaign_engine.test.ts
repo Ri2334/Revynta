@@ -150,9 +150,14 @@ describe('Phase 8 - Inactivity & Campaign Eligibility Engine Integration Matrix'
     }
 
     // Poll until event appears in eligibleEvents
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    let event: any = undefined;
+    const pollStart = Date.now();
+    while (Date.now() - pollStart < 6000) {
+      event = eligibleEvents.find((e) => e.sessionId === sessionId && e.campaignId === campaignAId);
+      if (event) break;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
 
-    const event = eligibleEvents.find((e) => e.sessionId === sessionId && e.campaignId === campaignAId);
     expect(event).toBeDefined();
     expect(event?.intentScore).toBe(80);
     expect(event?.channel).toBe('whatsapp');
