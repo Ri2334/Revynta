@@ -44,16 +44,17 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  // Start HTTP Server
-  try {
-    const address = await fastify.listen({
-      port: config.ingestion.port,
-      host: config.ingestion.host,
-    });
-    logger.info(`Ingestion API Server listening on ${address}`);
-  } catch (error) {
-    logger.error(error as Error, 'Failed to start HTTP server');
-    process.exit(1);
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      const address = await fastify.listen({
+        port: config.ingestion.port,
+        host: config.ingestion.host,
+      });
+      logger.info(`Ingestion API Server listening on ${address}`);
+    } catch (error) {
+      logger.error(error as Error, 'Failed to start HTTP server');
+      process.exit(1);
+    }
   }
 }
 

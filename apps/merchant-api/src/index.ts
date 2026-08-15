@@ -21,15 +21,17 @@ async function bootstrap() {
 
   await fastify.register(routes);
 
-  try {
-    const address = await fastify.listen({
-      port: config.merchantApi.port,
-      host: config.merchantApi.host,
-    });
-    logger.info(`Merchant Core API Server listening on ${address}`);
-  } catch (error) {
-    logger.error(error as Error, 'Failed to start Merchant API server');
-    process.exit(1);
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      const address = await fastify.listen({
+        port: config.merchantApi.port,
+        host: config.merchantApi.host,
+      });
+      logger.info(`Merchant Core API Server listening on ${address}`);
+    } catch (error) {
+      logger.error(error as Error, 'Failed to start Merchant API server');
+      process.exit(1);
+    }
   }
 }
 

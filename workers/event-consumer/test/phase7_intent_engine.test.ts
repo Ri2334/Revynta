@@ -70,6 +70,7 @@ describe('Phase 7 - Session Cache & Intent Engine Integration Matrix', () => {
   });
 
   it('2. Maintains bounded affinity ZSETs with default cap of 200 entries', async () => {
+    await redis.del(`affinity:${storeA}:product`);
     // Record 205 items into product affinity set
     for (let i = 1; i <= 205; i++) {
       await recordAffinitySignal(storeA, 'product', `prod-${i}`, i, 200);

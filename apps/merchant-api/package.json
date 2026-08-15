@@ -15,6 +15,7 @@
     "@fastify/cookie": "^9.3.1",
     "@revynta/config": "workspace:*",
     "@revynta/database": "workspace:*",
+    "@revynta/intent-engine": "workspace:*",
     "@revynta/observability": "workspace:*",
     "@revynta/recommendation-engine": "workspace:*",
     "@revynta/shared-types": "workspace:*",
