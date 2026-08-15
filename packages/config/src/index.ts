@@ -52,5 +52,6 @@ export const config = {
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || 'mock-phone-id',
     accessToken: process.env.WHATSAPP_ACCESS_TOKEN || 'mock-access-token',
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || 'revynta_local_verify',
+    appSecret: process.env.WHATSAPP_APP_SECRET || 'mock-app-secret',
   }
 };

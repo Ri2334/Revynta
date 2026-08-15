@@ -24,7 +24,23 @@ export async function validateApiKey(apiKey: string): Promise<string | null> {
   }
 
   // 2. Database Lookup Fallback
-  const tenantId = MOCK_KEYS[apiKey] || null;
+  let tenantId = MOCK_KEYS[apiKey] || null;
+  if (!tenantId) {
+    try {
+      const { hashApiKey, withAdminContext } = await import('@revynta/database');
+      const keyHash = hashApiKey(apiKey);
+      const keyRow = await withAdminContext(async (adminTrx: any) => {
+        return await adminTrx('api_keys')
+          .where({ key_hash: keyHash, status: 'active' })
+          .first();
+      });
+      if (keyRow) {
+        tenantId = keyRow.store_id;
+      }
+    } catch (error) {
+      logger.warn(error as Error, 'Database lookup failed in validateApiKey');
+    }
+  }
 
   // 3. Cache Result in Redis
   try {
