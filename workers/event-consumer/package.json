@@ -1,0 +1,29 @@
+{
+  "name": "@revynta/event-consumer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/index.js",
+    "benchmark": "node ./dist/benchmark.js",
+    "dev": "tsc --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@revynta/config": "workspace:*",
+    "@revynta/database": "workspace:*",
+    "@revynta/intent-engine": "workspace:*",
+    "@revynta/observability": "workspace:*",
+    "@revynta/shared-types": "workspace:*",
+    "bullmq": "^6.1.1",
+    "ioredis": "^5.11.1",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "knex": "^3.3.0",
+    "pg": "^8.23.0",
+    "vitest": "^2.0.5"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@revynta/intent-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@revynta/config": "workspace:*",
+    "@revynta/database": "workspace:*",
+    "@revynta/observability": "workspace:*",
+    "@revynta/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.5"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@revynta/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "migrate:latest": "knex migrate:latest --knexfile ./dist/knexfile.js",
+    "migrate:rollback": "knex migrate:rollback --knexfile ./dist/knexfile.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.3.0",
+    "@revynta/config": "workspace:*",
+    "@revynta/observability": "workspace:*",
+    "@revynta/shared-types": "workspace:*",
+    "ioredis": "^5.4.1",
+    "knex": "^3.1.0",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.5"
+  }
+}

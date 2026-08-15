@@ -1,0 +1,16 @@
+{
+  "name": "revynta-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade Browse Abandonment & Shopper Intent SaaS Platform",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "dev": "pnpm --parallel -r dev"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.5.4"
+  }
+}

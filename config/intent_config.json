@@ -1,0 +1,34 @@
+{
+  "modelVersion": "v1",
+  "inactivityThresholdMinutes": 30,
+  "affinityCap": 200,
+  "thresholds": {
+    "low": [0, 29],
+    "medium": [30, 69],
+    "high": [70, 100]
+  },
+  "weights": {
+    "page_view": 1,
+    "product_view": 5,
+    "repeat_product_view": 10,
+    "category_view": 3,
+    "search": 8,
+    "search_refinement": 10,
+    "filter": 6,
+    "variant_selection": 8,
+    "color_selection": 8,
+    "size_selection": 8,
+    "wishlist": 15,
+    "cart_add": 25,
+    "checkout_init": 50,
+    "purchase": 0,
+    "short_dwell": -5,
+    "bounce": -10
+  },
+  "decayHalfLifeHours": {
+    "search": 24,
+    "product_view": 48,
+    "cart_add": 48,
+    "default": 48
+  }
+}

@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: revynta-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: revynta_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d revynta_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: revynta-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
+    container_name: revynta-redpanda
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 1G
+      - --overprovisioned
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+      - --pandaproxy-addr 0.0.0.0:28082,OUTSIDE://0.0.0.0:8082
+      - --advertise-pandaproxy-addr PLAINTEXT://redpanda:28082,OUTSIDE://localhost:8082
+    ports:
+      - '9092:9092'
+      - '8082:8082'
+    volumes:
+      - redpandadata:/var/lib/redpanda
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:v2.5.2
+    container_name: revynta-redpanda-console
+    entrypoint: /bin/sh
+    command: -c "echo \"kafka:\" > /tmp/config.yml; echo \"  brokers:\" >> /tmp/config.yml; echo \"    - redpanda:29092\" >> /tmp/config.yml; /app/console --config.filepath=/tmp/config.yml"
+    ports:
+      - '8080:8080'
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: revynta-clickhouse
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    environment:
+      CLICKHOUSE_DB: revynta_analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "dev_clickhouse_pass"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - clickhousedata:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
+  redpandadata:
+  clickhousedata:

@@ -1,0 +1,14 @@
+{
+  "name": "@revynta/config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
