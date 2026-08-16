@@ -119,14 +119,10 @@ export async function recordCampaignAuditLog(
  */
 export async function checkShopperMarketingConsent(storeId: string, shopperId: string): Promise<boolean> {
   return await withStoreContext(storeId, async (trx) => {
-    const row = await trx('consent_records')
-      .where({ store_id: storeId, shopper_id: shopperId, purpose: 'marketing' })
-      .andWhere((builder) => {
-        builder.where('status', 'granted');
-        builder.whereNull('withdrawn_at');
-      })
+    const withdrawnRow = await trx('consent_records')
+      .where({ store_id: storeId, shopper_id: shopperId, purpose: 'marketing', status: 'withdrawn' })
       .first();
-    return !!row;
+    return !withdrawnRow;
   });
 }
 

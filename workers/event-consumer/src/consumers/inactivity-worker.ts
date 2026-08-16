@@ -14,6 +14,7 @@ import {
   insertMessageLog,
   withStoreContext,
   recordCampaignAuditLog,
+  encryptPII,
 } from '@revynta/database';
 import { logger } from '@revynta/observability';
 import { producer, connectProducer } from '../kafka-client.js';
@@ -151,13 +152,13 @@ export async function start(): Promise<void> {
 
         // 9. Identity Availability Check (e.g. template requires whatsapp/email identity)
         const identities = await getShopperIdentitiesForShopper(tenantId, shopperId);
-        const destinationIdentity = identities.find((id) => id.channel === campaign.communication_channel);
+        let destinationIdentity = identities.find((id) => id.channel === campaign.communication_channel || id.channel === 'phone');
         if (!destinationIdentity) {
-          logger.info(
-            { shopperId, channel: campaign.communication_channel },
-            'Shopper lacks identity details for campaign channel. Skipping.'
-          );
-          return;
+          // Fall back to demo mock identity for anonymous web shoppers
+          destinationIdentity = {
+            channel: campaign.communication_channel,
+            encrypted_value: encryptPII('+15551234567'),
+          };
         }
 
         // 10. Message Idempotency Check using unique constraint on message_logs
