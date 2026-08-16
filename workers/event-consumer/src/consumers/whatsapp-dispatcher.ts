@@ -172,13 +172,16 @@ export async function start(): Promise<void> {
             const channelIdentity = shopperIdentities.find((id) => id.channel === campaign.communication_channel || id.channel === 'phone');
             const targetEncryptedValue = channelIdentity ? channelIdentity.encrypted_value : (identity?.encryptedValue || '');
             
-            let decryptedPhone = '+15551234567';
+            let decryptedPhone = integration.configuration.testRecipientPhone || '+15551234567';
             if (targetEncryptedValue) {
               try {
                 decryptedPhone = decryptPII(targetEncryptedValue);
               } catch (err) {
-                logger.warn(err as Error, 'Failed to decrypt shopper phone identity; using default mock destination.');
+                logger.warn(err as Error, 'Failed to decrypt shopper phone identity; using default destination.');
               }
+            }
+            if (integration.configuration.testRecipientPhone) {
+              decryptedPhone = integration.configuration.testRecipientPhone;
             }
 
             // 3. Invoke Messaging Provider

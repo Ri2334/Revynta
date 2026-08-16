@@ -501,7 +501,7 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/api/v1/integrations/whatsapp', { preHandler: [authenticateMerchant, authorizeRoles(['owner', 'admin'])] }, async (request, reply) => {
     const user = request.user!;
     const storeId = user.activeStoreId;
-    const { phoneNumberId, accessToken, isMock } = request.body as any;
+    const { phoneNumberId, accessToken, isMock, testRecipientPhone } = request.body as any;
 
     if (!phoneNumberId || !accessToken) {
       return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Missing parameters' } });
@@ -516,6 +516,7 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
         phoneNumberId,
         accessTokenEncrypted: encryptedToken,
         isMock: !!isMock,
+        testRecipientPhone: testRecipientPhone ? testRecipientPhone.trim() : undefined,
       };
 
       if (existing) {
