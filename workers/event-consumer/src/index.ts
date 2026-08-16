@@ -51,9 +51,11 @@ for (const type of targetTypes) {
     }
     stopFns.push(module.stop);
     logger.info(`Bootstrapping consumer of type: '${type}'`);
-    await module.start();
+    module.start().catch((err) => {
+      logger.error({ err }, `Fatal error in consumer '${type}'`);
+    });
   } catch (err) {
-    logger.error({ err }, `Fatal error running consumer '${type}'`);
+    logger.error({ err }, `Fatal error initializing consumer '${type}'`);
   }
 }
 
