@@ -43,12 +43,10 @@ export async function validateApiKey(apiKey: string): Promise<string | null> {
     }
   }
 
-  // 3. Cache Result in Redis
+  // 3. Cache Result in Redis (only cache valid tenant IDs)
   try {
     if (tenantId) {
       await redis.set(cacheKey, tenantId, 'EX', 3600); // Cache hit for 1 hour
-    } else {
-      await redis.set(cacheKey, 'invalid', 'EX', 300); // Cache miss for 5 mins (prevent spamming DB)
     }
   } catch (error) {
     logger.warn(error as Error, 'Redis cache save failed in validateApiKey');

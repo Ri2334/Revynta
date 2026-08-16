@@ -81,8 +81,8 @@ export async function routes(fastify: FastifyInstance, options: FastifyPluginOpt
     async (request, reply) => {
       const { storeKey, events } = request.body;
 
-      // Extract Key from custom header or body fallback
-      const apiKey = (request.headers['x-store-api-key'] as string) || storeKey;
+      // Extract Key from custom headers or body fallback
+      const apiKey = (request.headers['x-store-api-key'] as string) || (request.headers['x-api-key'] as string) || storeKey;
 
       if (!apiKey) {
         return reply.status(401).send({ error: 'Unauthorized', message: 'Missing API Key' });
