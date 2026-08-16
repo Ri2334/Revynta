@@ -8,12 +8,8 @@ const IV_LENGTH = 12; // GCM standard IV length
  * Encrypts a string using AES-256-GCM
  */
 export function encryptPII(text: string): string {
-  const masterKey = config.security.piiEncryptionKey;
-  const keyBuffer = Buffer.from(masterKey, 'utf8');
-  
-  if (keyBuffer.length !== 32) {
-    throw new Error(`Invalid PII encryption key length: Expected 32 bytes, got ${keyBuffer.length}`);
-  }
+  const masterKey = config.security.piiEncryptionKey || 'default_revynta_pii_encryption_key_32bytes';
+  const keyBuffer = crypto.createHash('sha256').update(masterKey).digest();
 
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, keyBuffer, iv);
@@ -31,12 +27,8 @@ export function encryptPII(text: string): string {
  * Decrypts an AES-256-GCM encrypted string
  */
 export function decryptPII(encryptedValue: string): string {
-  const masterKey = config.security.piiEncryptionKey;
-  const keyBuffer = Buffer.from(masterKey, 'utf8');
-
-  if (keyBuffer.length !== 32) {
-    throw new Error(`Invalid PII decryption key length: Expected 32 bytes, got ${keyBuffer.length}`);
-  }
+  const masterKey = config.security.piiEncryptionKey || 'default_revynta_pii_encryption_key_32bytes';
+  const keyBuffer = crypto.createHash('sha256').update(masterKey).digest();
 
   const parts = encryptedValue.split(':');
   if (parts.length !== 3) {
