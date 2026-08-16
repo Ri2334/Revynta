@@ -149,6 +149,7 @@ services:
     restart: always
     environment:
       NODE_ENV: production
+      CONSUMER_TYPE: all
       PG_HOST: postgres
       PG_PORT: 5432
       PG_USER: ${PG_USER:-postgres}

@@ -30,7 +30,7 @@ COPY --from=builder /app/workers/event-consumer ./workers/event-consumer
 
 RUN pnpm install --prod --frozen-lockfile
 
-# Default worker role can be overridden via CONSUMER_TYPE env variable
-ENV CONSUMER_TYPE=session-processor
+# Default worker role runs all consumers in single container stack unless overridden
+ENV CONSUMER_TYPE=all
 
 CMD ["node", "workers/event-consumer/dist/index.js"]
