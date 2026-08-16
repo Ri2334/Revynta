@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-EC2_HOST="3.7.254.126"
+EC2_HOST="15.252.69.236"
 SSH_KEY="$HOME/.ssh/revynta-key.pem"
 
 echo "[1/4] Syncing project files to EC2 instance ($EC2_HOST)..."
 rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
-  --exclude 'node_modules' \
-  --exclude '.git' \
-  --exclude 'dist' \
-  --exclude '.env' \
+  --exclude '**/node_modules' \
+  --exclude '**/.git' \
+  --exclude '**/dist' \
+  --exclude '**/.env' \
+  --exclude '**/.turbo' \
   ./ ubuntu@$EC2_HOST:/home/ubuntu/revynta/
 
 echo "[2/4] Installing Docker & Docker Compose on EC2 if not present..."
@@ -24,7 +25,11 @@ EOF
 echo "[3/4] Building and launching production Docker containers on EC2..."
 ssh -i $SSH_KEY ubuntu@$EC2_HOST << 'EOF'
   cd /home/ubuntu/revynta
-  sudo docker compose -f docker-compose.prod.yml up -d --build
+  sudo docker compose -f docker-compose.prod.yml build merchant-api
+  sudo docker compose -f docker-compose.prod.yml build ingestion-api
+  sudo docker compose -f docker-compose.prod.yml build event-consumer
+  sudo docker compose -f docker-compose.prod.yml build dashboard-web
+  sudo docker compose -f docker-compose.prod.yml up -d
   sudo docker restart revynta-caddy
 EOF
 
