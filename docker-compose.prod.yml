@@ -15,6 +15,18 @@ services:
     depends_on:
       - ingestion-api
       - merchant-api
+      - dashboard-web
+
+  dashboard-web:
+    build:
+      context: .
+      dockerfile: apps/dashboard-web/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://13.201.129.139.sslip.io/api/v1
+    container_name: revynta-dashboard-web
+    restart: always
+    environment:
+      NODE_ENV: production
 
   postgres:
     image: postgres:16-alpine

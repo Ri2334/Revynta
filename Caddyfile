@@ -18,6 +18,6 @@
         reverse_proxy merchant-api:3001
     }
     handle {
-        respond "Revynta Production API Gateway Online" 200
+        reverse_proxy dashboard-web:80
     }
 }
