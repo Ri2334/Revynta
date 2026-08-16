@@ -15,15 +15,11 @@ const fastify = Fastify({
 
 async function bootstrap() {
   // CORS configuration allowing cross-origin tracking requests from any merchant website domain
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-    : true;
-
   await fastify.register(cors, {
-    origin: allowedOrigins,
+    origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-store-api-key', 'x-api-key'],
-    credentials: true,
+    allowedHeaders: '*',
+    credentials: false,
   });
 
   // Enable raw body parsing for Webhook signature verification
