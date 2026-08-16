@@ -21,7 +21,7 @@ import {
   Play
 } from 'lucide-react';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:3001/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'https://15.252.69.236.sslip.io/api/v1';
 
 export default function App() {
   // Authentication State
