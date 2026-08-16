@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: apps/dashboard-web/Dockerfile
       args:
-        VITE_API_BASE_URL: https://13.201.129.139.sslip.io/api/v1
+        VITE_API_BASE_URL: https://3.7.254.126.sslip.io/api/v1
     container_name: revynta-dashboard-web
     restart: always
     environment:
@@ -103,7 +103,7 @@ services:
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-mock-access-token}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-revynta_prod_verify_2026}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-mock-app-secret}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://13.201.129.139.sslip.io}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://3.7.254.126.sslip.io}
     depends_on:
       postgres:
         condition: service_healthy

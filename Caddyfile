@@ -1,4 +1,4 @@
-13.201.129.139.sslip.io {
+3.7.254.126.sslip.io {
     handle /api/v1/events* {
         reverse_proxy ingestion-api:3000
     }

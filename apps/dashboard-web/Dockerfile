@@ -12,7 +12,7 @@ COPY packages/ ./packages/
 COPY apps/dashboard-web/ ./apps/dashboard-web/
 
 # Accept build-time API base URL arg (default to production gateway)
-ARG VITE_API_BASE_URL=https://13.201.129.139.sslip.io/api/v1
+ARG VITE_API_BASE_URL=https://3.7.254.126.sslip.io/api/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Install dependencies and build frontend static bundle

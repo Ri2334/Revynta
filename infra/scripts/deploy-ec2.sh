@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-EC2_HOST="13.201.129.139"
+EC2_HOST="3.7.254.126"
 SSH_KEY="$HOME/.ssh/revynta-key.pem"
 
 echo "[1/4] Syncing project files to EC2 instance ($EC2_HOST)..."
@@ -25,6 +25,7 @@ echo "[3/4] Building and launching production Docker containers on EC2..."
 ssh -i $SSH_KEY ubuntu@$EC2_HOST << 'EOF'
   cd /home/ubuntu/revynta
   sudo docker compose -f docker-compose.prod.yml up -d --build
+  sudo docker restart revynta-caddy
 EOF
 
 echo "[4/4] Running PostgreSQL database migrations on EC2 container..."
