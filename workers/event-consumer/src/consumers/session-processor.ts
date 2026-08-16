@@ -70,7 +70,7 @@ export async function start(): Promise<void> {
               updated_at: new Date(),
               intent_score: 0,
               intent_segment: 'low',
-            }).onConflict(['id', 'store_id']).ignore();
+            }).onConflict('id').ignore();
           }
         });
 
