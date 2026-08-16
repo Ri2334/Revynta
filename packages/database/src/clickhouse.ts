@@ -91,7 +91,7 @@ export async function initClickHouseSchema(): Promise<void> {
           tenant_id UUID,
           event_type LowCardinality(String),
           unique_visitors AggregateFunction(uniq, UUID),
-          event_count UInt64
+          event_count SimpleAggregateFunction(sum, UInt64)
         ) ENGINE = AggregatingMergeTree()
         PARTITION BY toYYYYMM(log_date)
         ORDER BY (tenant_id, event_type, log_date);
@@ -109,7 +109,7 @@ export async function initClickHouseSchema(): Promise<void> {
           tenant_id,
           event_type,
           uniqState(shopper_id) AS unique_visitors,
-          count() AS event_count
+          toUInt64(count()) AS event_count
         FROM events_analytics
         GROUP BY log_date, tenant_id, event_type;
       `,
@@ -131,23 +131,18 @@ export async function insertAnalyticsEvents(events: EnrichedEvent[]): Promise<vo
 
   // Convert array of events to ClickHouse compatible JSONEachRow payload
   const rows = events.map((event) => ({
-    event_time: event.eventTime.replace('T', ' ').replace('Z', ''),
+    event_timestamp: event.eventTime ? event.eventTime.replace('T', ' ').replace('Z', '') : new Date().toISOString().replace('T', ' ').replace('Z', ''),
     event_id: event.eventId,
     tenant_id: event.tenantId,
     session_id: event.sessionId,
     shopper_id: event.shopperId,
+    visitor_id: (event as any).visitorId || event.shopperId,
     event_type: event.eventType,
-    sdk_version: event.sdkVersion,
-    page_url: event.pageUrl || null,
-    referrer: event.referrer || null,
-    user_agent: event.userAgent || null,
-    ip_address: event.ipAddress || null,
-    country: event.country || null,
-    productId: event.productId || '',
-    productPrice: event.productPrice || 0,
-    productCategories: event.productCategories || [],
-    productName: event.productName || '',
-    query: event.query || '',
+    page_url: event.pageUrl || '',
+    referrer: event.referrer || '',
+    product_id: event.productId || (event.metadata as any)?.productName || '',
+    category: Array.isArray(event.productCategories) ? event.productCategories.join(',') : '',
+    price: typeof event.productPrice === 'number' ? event.productPrice : 0,
     metadata: event.metadata ? JSON.stringify(event.metadata) : '{}',
   }));
 
