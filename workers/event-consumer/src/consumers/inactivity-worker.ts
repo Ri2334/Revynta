@@ -152,10 +152,13 @@ export async function start(): Promise<void> {
 
         // 9. Identity Availability Check (e.g. template requires whatsapp/email identity)
         const identities = await getShopperIdentitiesForShopper(tenantId, shopperId);
-        let destinationIdentity = identities.find((id) => id.channel === campaign.communication_channel || id.channel === 'phone');
+        let destinationIdentity: any = identities.find((id) => id.channel === campaign.communication_channel || id.channel === 'phone');
         if (!destinationIdentity) {
           // Fall back to demo mock identity for anonymous web shoppers
           destinationIdentity = {
+            id: 'mock',
+            store_id: tenantId,
+            shopper_id: shopperId,
             channel: campaign.communication_channel,
             encrypted_value: encryptPII('+15551234567'),
           };

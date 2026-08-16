@@ -66,8 +66,8 @@ export async function start(): Promise<void> {
             await trx('shoppers').insert({
               id: shopperId,
               store_id: tenantId,
-              first_seen_at: new Date(),
-              last_seen_at: new Date(),
+              created_at: new Date(),
+              updated_at: new Date(),
               intent_score: 0,
               intent_segment: 'low',
             }).onConflict(['id', 'store_id']).ignore();
