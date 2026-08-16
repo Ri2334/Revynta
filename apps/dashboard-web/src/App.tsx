@@ -97,15 +97,30 @@ export default function App() {
     }
   }, [activeStoreId, currentTab]);
 
+  const getAuthHeaders = (extraHeaders: Record<string, string> = {}) => {
+    const token = localStorage.getItem('revynta_token');
+    const headers: Record<string, string> = { ...extraHeaders };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   const fetchSession = async () => {
     setAuthLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/auth/me`, { 
+        headers: getAuthHeaders(),
+        credentials: 'include' 
+      });
       if (res.ok) {
         const body = await res.json();
         setUser(body.data);
         // Fetch accessible stores
-        const storesRes = await fetch(`${API_BASE}/stores`, { credentials: 'include' });
+        const storesRes = await fetch(`${API_BASE}/stores`, { 
+          headers: getAuthHeaders(),
+          credentials: 'include' 
+        });
         if (storesRes.ok) {
           const storesBody = await storesRes.json();
           setStores(storesBody.data);
@@ -150,6 +165,9 @@ export default function App() {
       if (!res.ok) {
         setAuthError(body.error?.message || 'Authentication failed');
       } else {
+        if (body.data?.token) {
+          localStorage.setItem('revynta_token', body.data.token);
+        }
         // Clear forms and reload session
         setAuthEmail('');
         setAuthPassword('');
@@ -167,7 +185,12 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+      await fetch(`${API_BASE}/auth/logout`, { 
+        method: 'POST', 
+        headers: getAuthHeaders(),
+        credentials: 'include' 
+      });
+      localStorage.removeItem('revynta_token');
       setUser(null);
       setStores([]);
       setActiveStoreId('');
@@ -180,7 +203,7 @@ export default function App() {
   const refreshData = async () => {
     if (!activeStoreId) return;
     setGlobalLoading(true);
-    const headers = { 'x-store-id': activeStoreId };
+    const headers = getAuthHeaders({ 'x-store-id': activeStoreId });
 
     try {
       if (currentTab === 'overview') {

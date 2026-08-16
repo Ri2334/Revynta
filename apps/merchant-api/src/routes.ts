@@ -100,11 +100,11 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
         path: '/',
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: 'none',
         maxAge: 24 * 3600,
       });
 
-      return reply.status(201).send({ data: { message: 'Registration successful', userId: result.userId } });
+      return reply.status(201).send({ data: { message: 'Registration successful', userId: result.userId, token: sessionToken } });
     } catch (err: any) {
       if (err.message === 'User already exists') {
         return reply.status(409).send({ error: { code: 'CONFLICT', message: err.message } });
@@ -136,11 +136,11 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
         path: '/',
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: 'none',
         maxAge: 24 * 3600,
       });
 
-      return reply.status(200).send({ data: { message: 'Login successful', userId: user.id } });
+      return reply.status(200).send({ data: { message: 'Login successful', userId: user.id, token: sessionToken } });
     } catch (err) {
       fastify.log.error(err);
       return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Login failed' } });
