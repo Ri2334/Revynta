@@ -21,7 +21,11 @@ import {
   Play
 } from 'lucide-react';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'https://15.252.69.236.sslip.io/api/v1';
+let rawApiBase = (import.meta.env.VITE_API_BASE_URL as string) || '';
+if (!rawApiBase || rawApiBase.includes('13.201.129.139')) {
+  rawApiBase = 'https://15.252.69.236.sslip.io/api/v1';
+}
+const API_BASE = rawApiBase;
 
 export default function App() {
   // Authentication State
