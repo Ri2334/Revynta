@@ -14,16 +14,16 @@ const fastify = Fastify({
 });
 
 async function bootstrap() {
-  // CORS configuration allowing cross-origin requests from merchant domains & SDK clients
+  // CORS configuration allowing cross-origin tracking requests from any merchant website domain
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-    : config.env === 'production'
-      ? []
-      : true;
+    : true;
 
   await fastify.register(cors, {
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-store-api-key', 'x-api-key'],
+    credentials: true,
   });
 
   // Enable raw body parsing for Webhook signature verification
