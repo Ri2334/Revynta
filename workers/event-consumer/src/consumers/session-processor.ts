@@ -57,20 +57,22 @@ export async function start(): Promise<void> {
           return;
         }
 
-        // 2. Tenant isolation check: verify shopper belongs to store
-        const shopperExists = await withStoreContext(tenantId, async (trx) => {
+        // 2. Ensure shopper exists in store context (auto-create if missing)
+        await withStoreContext(tenantId, async (trx) => {
           const shopper = await trx('shoppers')
             .where({ id: shopperId, store_id: tenantId })
             .first();
-          return !!shopper;
+          if (!shopper) {
+            await trx('shoppers').insert({
+              id: shopperId,
+              store_id: tenantId,
+              first_seen_at: new Date(),
+              last_seen_at: new Date(),
+              intent_score: 0,
+              intent_segment: 'low',
+            }).onConflict(['id', 'store_id']).ignore();
+          }
         });
-        if (!shopperExists) {
-          logger.warn(
-            { shopperId, tenantId },
-            'Security Alert: Shopper does not belong to the claimed tenant. Skipping event.'
-          );
-          return;
-        }
 
         await retry(async () => {
           const key = sessionKey(tenantId, sessionId);

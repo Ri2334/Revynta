@@ -39,17 +39,22 @@ export async function start(): Promise<void> {
         const email = metadata.email?.toString().trim();
         const phone = metadata.phone?.toString().trim();
 
-        // Tenant isolation: verify shopper belongs to store
-        const shopperExists = await withStoreContext(tenantId, async (trx) => {
+        // Ensure shopper exists for store
+        await withStoreContext(tenantId, async (trx) => {
           const shopper = await trx('shoppers')
             .where({ id: shopperId, store_id: tenantId })
             .first();
-          return !!shopper;
+          if (!shopper) {
+            await trx('shoppers').insert({
+              id: shopperId,
+              store_id: tenantId,
+              first_seen_at: new Date(),
+              last_seen_at: new Date(),
+              intent_score: 0,
+              intent_segment: 'low',
+            }).onConflict(['id', 'store_id']).ignore();
+          }
         });
-        if (!shopperExists) {
-          logger.warn({ shopperId, tenantId }, 'Security Alert: Shopper does not belong to the claimed tenant. Skipping identity resolution.');
-          return;
-        }
 
         if (!email && !phone) {
           logger.warn({ shopperId, tenantId }, 'Identity event has no email or phone. Skipping.');
