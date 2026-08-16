@@ -27,8 +27,9 @@ export async function validateApiKey(apiKey: string): Promise<string | null> {
   let tenantId = MOCK_KEYS[apiKey] || null;
   if (!tenantId) {
     try {
-      const { hashApiKey, withAdminContext } = await import('@revynta/database');
-      const keyHash = hashApiKey(apiKey);
+      const crypto = await import('crypto');
+      const { withAdminContext } = await import('@revynta/database');
+      const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
       const keyRow = await withAdminContext(async (adminTrx: any) => {
         return await adminTrx('api_keys')
           .where({ key_hash: keyHash, status: 'active' })

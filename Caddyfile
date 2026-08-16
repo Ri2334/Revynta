@@ -1,0 +1,20 @@
+13.201.129.139.sslip.io {
+    handle /api/v1/events* {
+        reverse_proxy ingestion-api:3000
+    }
+    handle /api/v1/webhooks/whatsapp* {
+        reverse_proxy ingestion-api:3000
+    }
+    handle /api/v1/* {
+        reverse_proxy merchant-api:3001
+    }
+    handle /health/* {
+        reverse_proxy merchant-api:3001
+    }
+    handle /metrics {
+        reverse_proxy merchant-api:3001
+    }
+    handle {
+        respond "Revynta Production API Gateway Online" 200
+    }
+}

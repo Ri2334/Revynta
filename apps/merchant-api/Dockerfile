@@ -11,9 +11,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/merchant-api/ ./apps/merchant-api/
 
-# Install dependencies and build merchant API and shared packages
+# Install dependencies and build merchant API and all workspace dependencies
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @revynta/merchant-api build
+RUN pnpm --filter @revynta/merchant-api... build
 
 # Production runner stage
 FROM node:22-alpine AS runner
@@ -27,8 +27,8 @@ ENV MERCHANT_API_HOST=0.0.0.0
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY packages/ ./packages/
-COPY apps/merchant-api/ ./apps/merchant-api/
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/merchant-api ./apps/merchant-api
 
 RUN pnpm install --prod --frozen-lockfile
 

@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: revynta-caddy
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - ingestion-api
+      - merchant-api
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: revynta-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-revynta_prod_secure_pass_2026}
+      POSTGRES_DB: ${PG_DATABASE:-revynta_prod}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: revynta-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
+    container_name: revynta-redpanda
+    restart: always
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 512M
+      - --overprovisioned
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    volumes:
+      - redpandadata:/var/lib/redpanda
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ingestion-api:
+    build:
+      context: .
+      dockerfile: apps/ingestion-api/Dockerfile
+    container_name: revynta-ingestion-api
+    restart: always
+    environment:
+      NODE_ENV: production
+      INGESTION_PORT: 3000
+      INGESTION_HOST: 0.0.0.0
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-revynta_prod_secure_pass_2026}
+      PG_DATABASE: ${PG_DATABASE:-revynta_prod}
+      REDIS_URI: redis://redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL:-https://jvjz2qf9tn.ap-south-1.aws.clickhouse.cloud:8443}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-KK2ax5J1Go.rM}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-revynta_analytics}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-prod_key_must_be_32_bytes_long_32}
+      JWT_SECRET: ${JWT_SECRET:-revynta_prod_jwt_secret_key_2026}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-mock-phone-id}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-mock-access-token}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-revynta_prod_verify_2026}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-mock-app-secret}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://13.201.129.139.sslip.io}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  merchant-api:
+    build:
+      context: .
+      dockerfile: apps/merchant-api/Dockerfile
+    container_name: revynta-merchant-api
+    restart: always
+    environment:
+      NODE_ENV: production
+      MERCHANT_API_PORT: 3001
+      MERCHANT_API_HOST: 0.0.0.0
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-revynta_prod_secure_pass_2026}
+      PG_DATABASE: ${PG_DATABASE:-revynta_prod}
+      REDIS_URI: redis://redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL:-https://jvjz2qf9tn.ap-south-1.aws.clickhouse.cloud:8443}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-KK2ax5J1Go.rM}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-revynta_analytics}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-prod_key_must_be_32_bytes_long_32}
+      JWT_SECRET: ${JWT_SECRET:-revynta_prod_jwt_secret_key_2026}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  event-consumer:
+    build:
+      context: .
+      dockerfile: workers/event-consumer/Dockerfile
+    container_name: revynta-event-consumer
+    restart: always
+    environment:
+      NODE_ENV: production
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-revynta_prod_secure_pass_2026}
+      PG_DATABASE: ${PG_DATABASE:-revynta_prod}
+      REDIS_URI: redis://redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL:-https://jvjz2qf9tn.ap-south-1.aws.clickhouse.cloud:8443}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-KK2ax5J1Go.rM}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-revynta_analytics}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-prod_key_must_be_32_bytes_long_32}
+      JWT_SECRET: ${JWT_SECRET:-revynta_prod_jwt_secret_key_2026}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  redpandadata:
+  caddy_data:
+  caddy_config:

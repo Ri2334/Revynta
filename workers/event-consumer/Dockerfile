@@ -11,9 +11,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY workers/event-consumer/ ./workers/event-consumer/
 
-# Install dependencies and build event-consumer worker and shared packages
+# Install dependencies and build event-consumer worker and all workspace dependencies
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @revynta/event-consumer build
+RUN pnpm --filter @revynta/event-consumer... build
 
 # Production runner stage
 FROM node:22-alpine AS runner
@@ -25,8 +25,8 @@ ENV NODE_ENV=production
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY packages/ ./packages/
-COPY workers/event-consumer/ ./workers/event-consumer/
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/workers/event-consumer ./workers/event-consumer
 
 RUN pnpm install --prod --frozen-lockfile
 
