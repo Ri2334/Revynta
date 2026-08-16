@@ -92,6 +92,17 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
           role: 'owner', // Default first user as Owner
         });
 
+        await adminTrx('integrations').insert({
+          store_id: storeRow.id,
+          provider: 'whatsapp',
+          status: 'active',
+          configuration: {
+            phoneNumberId: 'mock-phone-id',
+            accessTokenEncrypted: encryptPII('mock-access-token'),
+            isMock: true,
+          },
+        });
+
         return { userId: userRow.id, email: userRow.email };
       });
 
