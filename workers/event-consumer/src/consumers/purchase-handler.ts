@@ -22,7 +22,7 @@ export async function start(): Promise<void> {
 
   logger.info('Purchase Handler Consumer started.');
 
-  await consumer.run({
+  consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       const startTime = Date.now();
       let eventPayload = '';

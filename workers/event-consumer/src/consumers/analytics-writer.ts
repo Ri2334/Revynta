@@ -40,7 +40,7 @@ export async function start(): Promise<void> {
 
   logger.info('ClickHouse Analytics Writer Consumer started.');
 
-  await consumer.run({
+  consumer.run({
     eachBatch: async ({ batch, resolveOffset, heartbeat, isRunning, isStale }) => {
       const startTime = Date.now();
       const events: EnrichedEvent[] = [];

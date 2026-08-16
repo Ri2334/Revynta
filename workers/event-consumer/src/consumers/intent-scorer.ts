@@ -23,7 +23,7 @@ export async function start(): Promise<void> {
 
   logger.info('Intent Scorer Consumer started.');
 
-  await consumer.run({
+  consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       const startTime = Date.now();
       let eventPayload = '';

@@ -23,7 +23,7 @@ export async function start(): Promise<void> {
   await connectProducer();
   await consumer.subscribe({ topic: 'events.campaign.eligible', fromBeginning: true });
 
-  await consumer.run({
+  consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       const startTime = Date.now();
       const eventPayload = message.value?.toString();
