@@ -1,8 +1,5 @@
 13.201.129.139.sslip.io {
     handle /api/v1/events* {
-        header Access-Control-Allow-Origin "*"
-        header Access-Control-Allow-Methods "GET, POST, OPTIONS"
-        header Access-Control-Allow-Headers "*"
         reverse_proxy ingestion-api:3000
     }
     handle /api/v1/webhooks/whatsapp* {
