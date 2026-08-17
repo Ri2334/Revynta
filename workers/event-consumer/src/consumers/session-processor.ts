@@ -59,19 +59,14 @@ export async function start(): Promise<void> {
 
         // 2. Ensure shopper exists in store context (auto-create if missing)
         await withStoreContext(tenantId, async (trx) => {
-          const shopper = await trx('shoppers')
-            .where({ id: shopperId, store_id: tenantId })
-            .first();
-          if (!shopper) {
-            await trx('shoppers').insert({
-              id: shopperId,
-              store_id: tenantId,
-              created_at: new Date(),
-              updated_at: new Date(),
-              intent_score: 0,
-              intent_segment: 'low',
-            }).onConflict('id').ignore();
-          }
+          await trx('shoppers').insert({
+            id: shopperId,
+            store_id: tenantId,
+            created_at: new Date(),
+            updated_at: new Date(),
+            intent_score: 0,
+            intent_segment: 'low',
+          }).onConflict('id').merge({ store_id: tenantId, updated_at: new Date() });
         });
 
         await retry(async () => {
