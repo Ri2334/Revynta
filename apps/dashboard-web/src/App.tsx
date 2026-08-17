@@ -1288,7 +1288,7 @@ export default function App() {
                   {messageLogs.map((log: any) => (
                     <tr key={log.id} className="hover:bg-gray-800/30 text-gray-300">
                       <td className="py-4 px-6 font-mono text-xs">{log.id}</td>
-                      <td className="py-4 px-6 font-mono text-xs">{log.campaignId}</td>
+                      <td className="py-4 px-6 font-mono text-xs">{log.campaignName || log.campaignId}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
                           log.status === 'read' 

@@ -711,8 +711,10 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
 
     const logs = await withStoreContext(storeId, async (storeTrx: any) => {
       return await storeTrx('message_logs')
-        .where({ store_id: storeId })
-        .orderBy('created_at', 'desc')
+        .where({ 'message_logs.store_id': storeId })
+        .leftJoin('campaigns', 'message_logs.campaign_id', 'campaigns.id')
+        .select('message_logs.*', 'campaigns.name as campaign_name')
+        .orderBy('message_logs.created_at', 'desc')
         .limit(parseInt(limit, 10))
         .offset(offset);
     });
@@ -721,6 +723,7 @@ export async function routes(fastify: FastifyInstance): Promise<void> {
     const maskedLogs = logs.map((log: any) => ({
       id: log.id,
       campaignId: log.campaign_id,
+      campaignName: log.campaign_name || log.campaign_id,
       channel: log.channel,
       status: log.status,
       failureReason: log.failure_reason,
