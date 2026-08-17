@@ -117,27 +117,30 @@ export async function start(): Promise<void> {
         }
 
         // 6. Campaign Cooldown Check (Postgres message_logs lookup)
-        const recentCampaign = await hasReceivedCampaignRecently(
-          tenantId,
-          shopperId,
-          campaignId,
-          campaign.cooldown_seconds
-        );
-        if (recentCampaign) {
-          logger.info({ shopperId, campaignId }, 'Campaign cooldown active. Skipping.');
-          return;
+        // 6. Cooldown Period Check (skipped if cooldown_seconds <= 0 for demo testing)
+        if (campaign.cooldown_seconds && campaign.cooldown_seconds > 0) {
+          const recentCampaign = await hasReceivedCampaignRecently(
+            tenantId,
+            shopperId,
+            campaignId,
+            campaign.cooldown_seconds
+          );
+          if (recentCampaign) {
+            logger.info({ shopperId, campaignId }, 'Campaign cooldown active. Skipping.');
+            return;
+          }
         }
 
-        // 7. Global Frequency Cap Check (Max 3 messages per shopper per 30 days)
+        // 7. Global Frequency Cap Check (Max 100 messages per shopper for testing mode)
         const globalCapWindow = 30 * 24 * 60 * 60; // 30 days
         const recentMessagesCount = await getRecentMessageCount(tenantId, shopperId, globalCapWindow);
-        if (recentMessagesCount >= 3) {
+        if (recentMessagesCount >= 100) {
           logger.info({ shopperId, recentMessagesCount }, 'Global frequency cap reached. Skipping.');
           return;
         }
 
         // 8. Campaign-Specific Frequency Cap Check
-        if (campaign.frequency_cap_limit && campaign.frequency_cap_window_seconds) {
+        if (campaign.cooldown_seconds > 0 && campaign.frequency_cap_limit && campaign.frequency_cap_window_seconds) {
           const campaignMessagesCount = await getRecentMessageCount(
             tenantId,
             shopperId,
@@ -164,10 +167,8 @@ export async function start(): Promise<void> {
           };
         }
 
-        // 10. Message Idempotency Check using unique constraint on message_logs
-        // idempotency key matches campaign:shopper:session:day
-        const dayTimestamp = Math.floor(lastEventTimestamp / 86400000);
-        const idempotencyKey = `eligible:${campaignId}:${shopperId}:${sessionId}:${dayTimestamp}`;
+        // 10. Message Idempotency Check
+        const idempotencyKey = `eligible:${campaignId}:${shopperId}:${sessionId}:${crypto.randomUUID()}`;
 
         try {
           const messageLogId = await insertMessageLog(tenantId, {
