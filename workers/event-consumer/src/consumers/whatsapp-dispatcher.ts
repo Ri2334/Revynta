@@ -156,15 +156,19 @@ export async function start(): Promise<void> {
               return;
             }
 
-            let decryptedAccessToken = '';
-            try {
-              decryptedAccessToken = decryptPII(accessTokenEncrypted);
-            } catch (err) {
-              logger.error(err as Error, 'Failed to decrypt WhatsApp integration access token');
-              await trx('message_logs')
-                .where({ id: messageLogId })
-                .update({ status: 'failed', failure_reason: 'Failed to decrypt credentials' });
-              return;
+            let decryptedAccessToken = 'mock-access-token';
+            if (accessTokenEncrypted && accessTokenEncrypted !== 'mock') {
+              try {
+                decryptedAccessToken = decryptPII(accessTokenEncrypted);
+              } catch (err) {
+                if (!integration.configuration.isMock) {
+                  logger.error(err as Error, 'Failed to decrypt WhatsApp integration access token');
+                  await trx('message_logs')
+                    .where({ id: messageLogId })
+                    .update({ status: 'failed', failure_reason: 'Failed to decrypt credentials' });
+                  return;
+                }
+              }
             }
 
             // H. Shopper identity / destination check
